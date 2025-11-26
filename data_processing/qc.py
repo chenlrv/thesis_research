@@ -4,8 +4,8 @@ import scrublet as scr
 from anndata import AnnData
 from scipy.stats import pearsonr
 
-from plots import plot_genes_transcripts, plot_doublet_analysis
-from utils import get_adata_section_id
+from data_processing.plots import plot_genes_transcripts, plot_doublet_analysis
+from data_processing.utils.adata import get_adata_section_id
 
 
 def get_negative_probes(adata: AnnData) -> AnnData:

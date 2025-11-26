@@ -2,7 +2,7 @@ import anndata as ad
 import squidpy as sq
 from anndata import AnnData
 
-from qc import qc, remove_plaque_correlated_genes, remove_negative_probes, get_negative_probes
+from data_processing.qc import qc, remove_plaque_correlated_genes, remove_negative_probes, get_negative_probes
 
 DATA_PATH_TEMPLATE = 'D:/thesis_research/resources/{section_id}'
 

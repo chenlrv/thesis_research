@@ -6,7 +6,7 @@ from matplotlib.path import Path as MplPath
 DATA_PATH_TEMPLATE = 'D:/thesis_research/resources/{section_id}'
 S10_SECTION_DIR = DATA_PATH_TEMPLATE.format(section_id='GSM8199188_ID61-ID62_S10')
 S18_SECTION_DIR = DATA_PATH_TEMPLATE.format(section_id='GSM8199189_ID67-ID68_S18')
-FIGURES_DIR = 'D:/thesis_research/resources/figures'
+FIGURES_DIR = '/resources/figures'
 
 cells_s10 = pd.read_csv(f"{S10_SECTION_DIR}\\metadata_file.csv")
 
@@ -26,7 +26,6 @@ def generate_colored_plotted_image(
     fov_df = pd.read_csv(fov_positions_file)
 
     x_min = fov_df['x_global_px'].min()
-    y_min = fov_df['y_global_px'].min()
     y_max = fov_df['y_global_px'].max()
 
     shapes_df = pd.read_csv(shapes_file)
@@ -58,7 +57,7 @@ def generate_colored_plotted_image(
     }
 
     fig, ax = plt.subplots(figsize=fig_size, dpi=dpi)
-    # compute rotated coordinates
+
     x = cells_df["napari_x"].values
     y = cells_df["napari_y"].values
     if rotate_deg != 0:
@@ -91,7 +90,7 @@ def generate_colored_plotted_image(
         ax.invert_yaxis()
 
     # ---- Optional: Apply rotation ----
-    # Base coords
+
     x = cells_df["napari_x"].values
     y = cells_df["napari_y"].values
 

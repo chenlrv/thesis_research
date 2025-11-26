@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from anndata import AnnData
 
-from utils import get_adata_section_id
+from data_processing.utils.adata import get_adata_section_id
 
 
 def plot_genes_transcripts(adata: AnnData, counts_max: float, counts_min: float, genes_max: float,
