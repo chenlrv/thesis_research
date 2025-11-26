@@ -19,6 +19,9 @@ def generate_colored_plotted_image(
         zoom_ylim: tuple = None,  # e.g. (85000, 105000)
         rotate_deg: float = 0,  # 0, 90, -90, 180
         mirror: str = None,
+        fig_size: tuple[int, int] = (20, 28),
+        point_size: int = 10,
+        dpi: int = 150,
         y_shift: int = 4200):
     fov_df = pd.read_csv(fov_positions_file)
 
@@ -46,11 +49,15 @@ def generate_colored_plotted_image(
     print(region_counts)
 
     region_colors = {
-        0: '#70AD47', 1: '#4472C4', 2: '#C55A5A',
-        3: '#ED7D31', 'Unassigned': '#CCCCCC'
+        0: '#70AD47', 1: '#4472C4', 2: '#ED7D31',
+        3: '#C55A5A',
+        4: '#70AD47', 5: '#4472C4', 6: '#ED7D31',
+        7: '#C55A5A',
+
+        'Unassigned': '#CCCCCC'
     }
 
-    fig, ax = plt.subplots(figsize=(14, 8), dpi=200)
+    fig, ax = plt.subplots(figsize=fig_size, dpi=dpi)
     # compute rotated coordinates
     x = cells_df["napari_x"].values
     y = cells_df["napari_y"].values
@@ -69,7 +76,7 @@ def generate_colored_plotted_image(
             ax.scatter(
                 region_cells["plot_x"],
                 region_cells["plot_y"],
-                s=2,
+                s=point_size,
                 color=color,
                 alpha=0.8,
                 label=f"{region_name} ({len(region_cells):,})",
@@ -97,7 +104,7 @@ def generate_colored_plotted_image(
     # ---- Final formatting ----
     ax.set_aspect("equal")
     ax.invert_yaxis()
-    ax.legend(loc='upper right', fontsize=14, markerscale=2)
+    # ax.legend(loc='upper right', fontsize=14, markerscale=2)
     ax.set_title("Cells Colored by Region", fontsize=18, weight='bold')
     ax.set_xlabel("X (napari coordinates)")
     ax.set_ylabel("Y (napari coordinates)")
@@ -146,10 +153,11 @@ def rotate_points(x, y, angle_deg):
     y_rot = xr * np.sin(theta) + yr * np.cos(theta) + cy
     return x_rot, y_rot
 
-# generate_colored_plotted_image(
-#     fov_positions_file=f"{S10_SECTION_DIR}\\fov_positions_file.csv",
-#     metadata_file=f"{S10_SECTION_DIR}\\metadata_file.csv",
-#     shapes_file=f"{S10_SECTION_DIR}\\Shapes_s10_bottom.csv")
+generate_colored_plotted_image(
+    fov_positions_file=f"{S10_SECTION_DIR}\\fov_positions_file.csv",
+    metadata_file=f"{S10_SECTION_DIR}\\metadata_file.csv",
+    shapes_file=f"{S10_SECTION_DIR}\\Shapes_s10_bottom.csv")
+
 
 generate_colored_plotted_image(
     fov_positions_file=f"{S10_SECTION_DIR}\\fov_positions_file.csv",
@@ -158,5 +166,20 @@ generate_colored_plotted_image(
     # zoom_xlim=(0, 20000),
     # zoom_ylim=(0, 40000),
     rotate_deg=90,
-    mirror = 'horizontal'
+    mirror = 'horizontal',
+    fig_size = (14, 8),
+    point_size = 3,
+    dpi = 200
+)
+
+generate_colored_plotted_image(
+    fov_positions_file=f"{S18_SECTION_DIR}\\fov_positions_file.csv",
+    metadata_file=f"{S18_SECTION_DIR}\\metadata_file.csv",
+    shapes_file=f"{S18_SECTION_DIR}\\Shapes_s18_rotated.csv",
+    mirror='vertical',
+    rotate_deg=270,
+    fig_size=(14, 8),
+    point_size=3,
+    dpi=200,
+    y_shift=3500
 )
