@@ -1,5 +1,4 @@
-import pandas as pd
-from pathlib import Path
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.path import Path as MplPath
@@ -12,7 +11,15 @@ FIGURES_DIR = 'D:/thesis_research/resources/figures'
 cells_s10 = pd.read_csv(f"{S10_SECTION_DIR}\\metadata_file.csv")
 
 
-def generate_colored_plotted_image(fov_positions_file:str, metadata_file: str, shapes_file: str, y_shift: int = 4200):
+def generate_colored_plotted_image(
+        fov_positions_file: str,
+        metadata_file: str,
+        shapes_file: str,
+        zoom_xlim: tuple = None,  # e.g. (30000, 45000)
+        zoom_ylim: tuple = None,  # e.g. (85000, 105000)
+        rotate_deg: float = 0,  # 0, 90, -90, 180
+        mirror: str = None,
+        y_shift: int = 4200):
     fov_df = pd.read_csv(fov_positions_file)
 
     x_min = fov_df['x_global_px'].min()
@@ -39,22 +46,30 @@ def generate_colored_plotted_image(fov_positions_file:str, metadata_file: str, s
     print(region_counts)
 
     region_colors = {
-        0: '#70AD47', 1: '#4472C4', 2: '#ED7D31',
-        3: '#C55A5A', 'Unassigned': '#CCCCCC'
+        0: '#70AD47', 1: '#4472C4', 2: '#C55A5A',
+        3: '#ED7D31', 'Unassigned': '#CCCCCC'
     }
 
-
-
-    fig, ax = plt.subplots(figsize=(20, 28), dpi=150)
+    fig, ax = plt.subplots(figsize=(14, 8), dpi=200)
+    # compute rotated coordinates
+    x = cells_df["napari_x"].values
+    y = cells_df["napari_y"].values
+    if rotate_deg != 0:
+        x_rot, y_rot = rotate_points(x, y, rotate_deg)
+        cells_df["plot_x"] = x_rot
+        cells_df["plot_y"] = y_rot
+    else:
+        cells_df["plot_x"] = cells_df["napari_x"]
+        cells_df["plot_y"] = cells_df["napari_y"]
 
     # Plot each region
     for region_name, color in region_colors.items():
         region_cells = cells_df[cells_df["region"] == region_name]
         if len(region_cells) > 0:
             ax.scatter(
-                region_cells["napari_x"],
-                region_cells["napari_y"],
-                s=10,
+                region_cells["plot_x"],
+                region_cells["plot_y"],
+                s=2,
                 color=color,
                 alpha=0.8,
                 label=f"{region_name} ({len(region_cells):,})",
@@ -62,21 +77,39 @@ def generate_colored_plotted_image(fov_positions_file:str, metadata_file: str, s
                 rasterized=True
             )
 
-    # FIX: Set axis limits based on actual data
-    # ax.set_xlim(cells_df["napari_x"].min() - 1000, cells_df["napari_x"].max() + 1000)
-    # ax.set_ylim(cells_df["napari_y"].min() - 1000, cells_df["napari_y"].max() + 1000)
+    # ---- Optional: Apply mirroring ----
+    if mirror == "horizontal":
+        ax.invert_xaxis()
+    elif mirror == "vertical":
+        ax.invert_yaxis()
 
+    # ---- Optional: Apply rotation ----
+    # Base coords
+    x = cells_df["napari_x"].values
+    y = cells_df["napari_y"].values
+
+    # ---- Optional: zoom ----
+    if zoom_xlim is not None:
+        ax.set_xlim(zoom_xlim)
+    if zoom_ylim is not None:
+        ax.set_ylim(zoom_ylim)
+
+    # ---- Final formatting ----
     ax.set_aspect("equal")
     ax.invert_yaxis()
-    ax.legend(loc='best', fontsize=14, markerscale=3)
+    ax.legend(loc='upper right', fontsize=14, markerscale=2)
     ax.set_title("Cells Colored by Region", fontsize=18, weight='bold')
-    ax.set_xlabel("X (Napari coordinates)", fontsize=14)
-    ax.set_ylabel("Y (Napari coordinates)", fontsize=14)
+    ax.set_xlabel("X (napari coordinates)")
+    ax.set_ylabel("Y (napari coordinates)")
     ax.grid(True, alpha=0.2)
 
     plt.tight_layout()
-    # plt.savefig("cells_colored_final.png", dpi=300, facecolor='white', bbox_inches='tight')
     plt.show()
+
+    # ---- Optional save ----
+    # if save_path is not None:
+    #     plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='white')
+    #     print(f"\n✓ Saved to: {save_path}")
 
     print("\n✓ Plot saved as 'cells_colored_final.png'")
 
@@ -93,7 +126,25 @@ def assign_all_regions(cells_df, polygons):
 
     return regions
 
+def rotate_points(x, y, angle_deg):
+    """
+    Rotate points (x, y) around their center by angle_deg.
+    Positive angle = counter-clockwise.
+    Returns x_rot, y_rot as np.arrays.
+    """
+    theta = np.deg2rad(angle_deg)
+    x = np.asarray(x)
+    y = np.asarray(y)
 
+    cx = 0.5 * (x.min() + x.max())
+    cy = 0.5 * (y.min() + y.max())
+
+    xr = x - cx
+    yr = y - cy
+
+    x_rot = xr * np.cos(theta) - yr * np.sin(theta) + cx
+    y_rot = xr * np.sin(theta) + yr * np.cos(theta) + cy
+    return x_rot, y_rot
 
 # generate_colored_plotted_image(
 #     fov_positions_file=f"{S10_SECTION_DIR}\\fov_positions_file.csv",
@@ -103,4 +154,9 @@ def assign_all_regions(cells_df, polygons):
 generate_colored_plotted_image(
     fov_positions_file=f"{S10_SECTION_DIR}\\fov_positions_file.csv",
     metadata_file=f"{S10_SECTION_DIR}\\metadata_file.csv",
-    shapes_file=f"{S10_SECTION_DIR}\\Shapes_s10_up.csv")
+    shapes_file=f"{S10_SECTION_DIR}\\Shapes_s10_up.csv",
+    # zoom_xlim=(0, 20000),
+    # zoom_ylim=(0, 40000),
+    rotate_deg=90,
+    mirror = 'horizontal'
+)
