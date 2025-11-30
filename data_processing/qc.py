@@ -33,7 +33,7 @@ def remove_negative_probes(adata: AnnData, negative_probes: AnnData) -> AnnData:
     return adata
 
 
-def qc(adata: AnnData) -> AnnData:
+def remove_outliers_and_doublets(adata: AnnData) -> AnnData:
     print(f'Starting QC for AnnData {get_adata_section_id(adata)}')
     adata = remove_outlier_cells_by_genes_and_transcripts(adata)
     adata = run_scrublet(adata)

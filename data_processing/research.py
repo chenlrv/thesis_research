@@ -1,8 +1,11 @@
+from pathlib import Path
+
 import anndata as ad
 import squidpy as sq
 from anndata import AnnData
 
-from data_processing.qc import qc, remove_plaque_correlated_genes, remove_negative_probes, get_negative_probes
+from data_processing.clustering import clustering
+from data_processing.qc import remove_outliers_and_doublets, remove_negative_probes, get_negative_probes
 
 DATA_PATH_TEMPLATE = 'D:/thesis_research/resources/{section_id}'
 
@@ -25,36 +28,33 @@ def load_adata(section_id: str) -> AnnData:
     return adata
 
 
-def process_adata(section_id: str) -> tuple[AnnData, AnnData]:
+def adata_qc(section_id: str, do_remove_negative_probes: bool = True) -> AnnData:
     adata = load_adata(section_id)
     negative_probes = get_negative_probes(adata)
-    adata = remove_negative_probes(adata, negative_probes)
-    adata = qc(adata)
-    return adata, negative_probes
+    if do_remove_negative_probes:
+        adata = remove_negative_probes(adata, negative_probes)
+    adata = remove_outliers_and_doublets(adata)
+    return adata
 
 
 def run():
-    s10_adata, s10_negative_probes = process_adata(section_id='GSM8199188_ID61-ID62_S10')
-    s18_adata, s18_negative_probes = process_adata(section_id='GSM8199189_ID67-ID68_S18')
+    use_path = False
+    if use_path and Path('../resources/final_adata.h5ad').exists():
+        adata = ad.read_h5ad('../resources/final_adata.h5ad')
+    else:
+        s10_adata = adata_qc(section_id='GSM8199188_ID61-ID62_S10')
+        s18_adata = adata_qc(section_id='GSM8199189_ID67-ID68_S18')
 
-    sections_adata_unified = s10_adata.concatenate(
-        s18_adata,
-        batch_key='section_id',
-        batch_categories=['S10', 'S18'],
-        index_unique='-')
+        adata = s10_adata.concatenate(
+            s18_adata,
+            batch_key='section_id',
+            batch_categories=['S10', 'S18'],
+            index_unique='-')
 
-    negative_probes_unified = s10_negative_probes.concatenate(
-        s18_negative_probes,
-        batch_key='section_id',
-        batch_categories=['S10', 'S18'],
-        index_unique='-')
 
-    final_adata = ad.concat(
-        [sections_adata_unified, negative_probes_unified],
-        axis=1,
-        merge='same'
-    )
-    filtered_adata = remove_plaque_correlated_genes(final_adata)
+    clustering(adata)
+    # filtered_adata = remove_plaque_correlated_genes(final_adata)
+    # return filtered_adata
 
 
 run()
