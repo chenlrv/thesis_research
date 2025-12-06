@@ -1,22 +1,28 @@
-def cluster_macrophages_from_gnn(adata: AnnData,
-                                 gnn_key: str = "X_gnn_dgi",
-                                 celltype_col: str = "cell_type",
-                                 macrophage_label: str = "Macrophage",
-                                 resolution: float = 0.6):
+from anndata import AnnData
+
+
+def cluster_from_gnn(
+        adata: AnnData,
+        gnn_key: str = "X_gnn_dgi",
+        n_neighbors: int = 15,
+        resolution: float = 0.6,
+        plot: bool = True,
+):
     """
-    Subset macrophages, cluster them in GNN embedding space.
+    Cluster ALL cells using GNN embeddings.
     """
-    # subset
-    mg = adata[adata.obs[celltype_col] == macrophage_label].copy()
+    import scanpy as sc
 
-    if gnn_key not in mg.obsm:
-        raise ValueError(f"{gnn_key} not found in obsm. Did you run get_gnn_embeddings?")
+    if gnn_key not in adata.obsm:
+        raise KeyError(f"{gnn_key} not found in adata.obsm.")
 
-    mg.obsm["X_gnn_used"] = mg.obsm[gnn_key]
+    adata.obsm["X_gnn_used"] = adata.obsm[gnn_key]
 
-    # neighbors & clustering
-    sc.pp.neighbors(mg, use_rep="X_gnn_used", n_neighbors=15)
-    sc.tl.umap(mg)
-    sc.tl.leiden(mg, resolution=resolution, key_added="mg_gnn_cluster")
+    sc.pp.neighbors(adata, use_rep="X_gnn_used", n_neighbors=n_neighbors)
+    sc.tl.umap(adata)
+    sc.tl.leiden(adata, resolution=resolution, key_added="gnn_cluster")
 
-    return mg
+    if plot:
+        sc.pl.umap(adata, color="gnn_cluster")
+
+    return adata

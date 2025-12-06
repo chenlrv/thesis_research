@@ -1,4 +1,9 @@
-def get_gnn_embeddings(adata: AnnData, data: Data, encoder: nn.Module,
+import torch
+from anndata import AnnData
+from torch_geometric.data import Data
+from torch import nn
+
+def add_gnn_embeddings(adata: AnnData, data: Data, encoder: nn.Module,
                        key: str = "X_gnn_dgi",
                        device: str = "cuda" if torch.cuda.is_available() else "cpu"):
     encoder.eval()

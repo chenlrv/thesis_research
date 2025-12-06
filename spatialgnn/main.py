@@ -1,39 +1,29 @@
-# core
+import anndata as ad
 import numpy as np
 import scanpy as sc
-from anndata import AnnData
-
-# graph & DL
 import torch
-from torch import nn
-import torch.nn.functional as F
-from torch_geometric.data import Data
-from torch_geometric.nn import GCNConv
-from torch_geometric.nn.models import DGI
-
-# kNN graph
+from anndata import AnnData
 from sklearn.neighbors import NearestNeighbors
+from torch_geometric.data import Data
 
-def prepare_node_features(adata: AnnData, n_hvg: int = 2000, n_pcs: int = 50) -> np.ndarray:
+from spatialgnn.clustering import cluster_from_gnn
+from spatialgnn.embeddings import add_gnn_embeddings
+from spatialgnn.training import train_dgi
+
+
+def prepare_node_features(adata: AnnData, n_pcs: int) -> np.ndarray:
     """
-    Take AnnData, select HVGs, run PCA, return node features (cells × n_pcs).
+    Take AnnData, run PCA, return node features (cells × n_pcs).
     Stores results in adata so we can reuse.
     """
-    # Work on a copy to avoid messing with your original unintentionally
     adata_tmp = adata.copy()
 
-    # Highly variable genes
-    sc.pp.highly_variable_genes(adata_tmp, n_top_genes=n_hvg, subset=True)
-
-    # Normalize & log
     sc.pp.normalize_total(adata_tmp, target_sum=1e4)
     sc.pp.log1p(adata_tmp)
 
-    # PCA
     sc.pp.scale(adata_tmp, max_value=10)
     sc.tl.pca(adata_tmp, n_comps=n_pcs)
 
-    # Store in original adata
     adata.obsm["X_pca_gnn"] = adata_tmp.obsm["X_pca"]
 
     return adata.obsm["X_pca_gnn"]
@@ -41,7 +31,7 @@ def prepare_node_features(adata: AnnData, n_hvg: int = 2000, n_pcs: int = 50) ->
 
 def build_spatial_knn_graph(adata: AnnData, k: int = 8,
                             x_key: str = "CenterX_global_px",
-                            y_key: str = "CenterY_global_px"):
+                            y_key: str = "CenterY_global_px") -> torch.LongTensor:
     """
     Build a kNN graph based on spatial coordinates.
     Returns edge_index (2 × num_edges) as torch.LongTensor.
@@ -103,9 +93,22 @@ def adata_to_pyg_data(adata: AnnData,
     return data
 
 
-X_pca = prepare_node_features(adata_all, n_hvg=2000, n_pcs=50)
-print(X_pca.shape)  # (n_cells, 50)
-edge_index = build_spatial_knn_graph(adata_all, k=8,
-                                     x_key="CenterX_global_px",
-                                     y_key="CenterY_global_px")
-print(edge_index.shape)  # (2, num_edges)
+def run():
+    adata = ad.read_h5ad('../resources/final_adata.h5ad')
+    x_pca = prepare_node_features(adata, n_pcs=20)
+    print(x_pca.shape)
+
+    data = adata_to_pyg_data(adata)
+    encoder = train_dgi(data, hidden_dim=128, epochs=200, device="cpu")
+
+    add_gnn_embeddings(adata, data, encoder, key="X_gnn_dgi", device="cpu")
+
+    mg = cluster_from_gnn(
+        adata,
+        gnn_key="X_gnn_dgi",
+        resolution=0.6,
+        plot=True
+    )
+
+
+run()
