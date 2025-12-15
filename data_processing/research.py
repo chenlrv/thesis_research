@@ -5,7 +5,7 @@ import anndata as ad
 import squidpy as sq
 from anndata import AnnData
 
-from data_processing.clustering import clustering
+from data_processing.clustering.clustering import cluster
 from data_processing.qc import remove_outliers_and_doublets, remove_negative_probes, get_negative_probes
 from data_processing.utils.adata import add_section_sample_ids
 
@@ -45,7 +45,7 @@ def adata_qc(section_id: str, section_number: int, do_remove_negative_probes: bo
 
 
 def run():
-    use_path = False
+    use_path = True
     if use_path and Path('../resources/final_adata.h5ad').exists():
         adata = ad.read_h5ad('../resources/final_adata.h5ad')
     else:
@@ -61,7 +61,7 @@ def run():
             keys=SECTIONS,
             index_unique='-')
 
-        clustering(adata)
+    cluster(adata)
         # filtered_adata = remove_plaque_correlated_genes(final_adata)
         # return filtered_adata
 
