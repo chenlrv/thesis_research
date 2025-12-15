@@ -37,23 +37,33 @@ def get_allen_brain_atlas_cell_type_markers(excel_file_path: str = None):
 
     print(f'Loaded {len(df)} cell clusters from Allen Brain Atlas.')
 
-    add_cell_type(df)
+    unknown_cell_types = get_unknown_cell_types(df)
+    add_cell_type(df, unknown_cell_types)
     cell_type_markers = extract_cell_type_markers(df)
     print('Extracted markers for cell types:', list(cell_type_markers.keys()))
 
 
-def add_cell_type(df: pd.DataFrame) -> None:
+def get_unknown_cell_types(df: pd.DataFrame) -> set[str]:
     unknown_types = set()
 
     for idx, row in df.iterrows():
         supertype_label = row.get('supertype_label', None)
         cell_type = extract_cell_type(supertype_label)
-        df.at[idx, 'cell_type'] = cell_type
         if cell_type == supertype_label:
             unknown_types.add(supertype_label)
 
     if unknown_types:
         print('Warning: Unrecognized supertype_labels found:', unknown_types)
+
+    return unknown_types
+
+def add_cell_type(df: pd.DataFrame, unknown_cell_types: set[str]) -> None:
+    for idx, row in df.iterrows():
+        supertype_label = row.get('supertype_label', None)
+        if supertype_label in unknown_cell_types:
+            df.at[idx, 'cell_type'] = None
+        else:
+            df.at[idx, 'cell_type'] = extract_cell_type(supertype_label)
 
 
 def extract_cell_type(supertype_label: str) -> str:
@@ -74,7 +84,7 @@ def extract_cell_type(supertype_label: str) -> str:
 def extract_cell_type_markers(df: pd.DataFrame) -> dict[str, list]:
     cell_type_markers = {}
 
-    for cell_type in df['cell_type'].unique():
+    for cell_type in df['cell_type'].dropna().unique():
         type_df = df[df['cell_type'] == cell_type]
 
         all_markers = set()
