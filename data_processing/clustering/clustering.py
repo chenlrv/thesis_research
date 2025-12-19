@@ -3,14 +3,20 @@ from anndata import AnnData
 
 from data_processing.clustering.allen_brain_atlas_cell_type import get_allen_brain_atlas_cell_type_markers
 from data_processing.clustering.mouse_brain_org_cell_type import get_cell_type_marker_genes
+from data_processing.imaging.plot_spatial_clusters import plot_spatial_clusters
 
 
 def cluster(adata: AnnData) -> None:
     print(f'Starting clustering process for {len(adata.obs)} cells and {len(adata.var)} genes.')
     _create_clusters(adata)
 
-    _label_clusters_by_allen_brain_atlas(adata.copy())
-    _label_clusters_by_mouse_brain_org(adata.copy())
+    adata_allen_labeling = adata.copy()
+    _label_clusters_by_allen_brain_atlas(adata_allen_labeling)
+    plot_spatial_clusters(adata_allen_labeling, 'allen brain atlas')
+
+    adata_mouse_brain_labeling = adata.copy()
+    _label_clusters_by_mouse_brain_org(adata_mouse_brain_labeling)
+    plot_spatial_clusters(adata_mouse_brain_labeling, 'mouse brain org')
 
     # _filter_microglia(adata)
 

@@ -6,7 +6,8 @@ from anndata import AnnData
 from sklearn.neighbors import NearestNeighbors
 from torch_geometric.data import Data
 
-from spatialgnn.clustering import cluster_from_gnn
+from data_processing.imaging.plot_spatial_clusters import plot_spatial_clusters
+from spatialgnn.clustering import cluster_from_gnn, label_gnn_clusters
 from spatialgnn.embeddings import add_gnn_embeddings
 from spatialgnn.training import train_dgi
 
@@ -109,6 +110,9 @@ def run():
         resolution=0.6,
         plot=True
     )
+
+    label_gnn_clusters(adata)
+    plot_spatial_clusters(adata, 'gnn_cluster')
 
 
 run()
