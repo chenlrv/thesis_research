@@ -27,11 +27,11 @@ def _create_clusters(adata: AnnData) -> None:
 
     sc.pp.scale(adata, max_value=10)
 
-    sc.tl.pca(adata, n_comps=20)
+    sc.tl.pca(adata, n_comps=50, random_state=42)
 
-    sc.pp.neighbors(adata, n_pcs=20)
-    sc.tl.umap(adata)
-    sc.tl.leiden(adata, resolution=0.45, key_added="cluster")
+    sc.pp.neighbors(adata, n_pcs=30, metric='cosine', random_state=42)
+    sc.tl.umap(adata, random_state=42)
+    sc.tl.leiden(adata, resolution=0.45, key_added="cluster", random_state=42)
 
     sc.pl.umap(adata, color="sample_id", legend_loc="right margin")
 
@@ -54,8 +54,10 @@ def _label_clusters_by_mouse_brain_org(adata: AnnData) -> None:
 
 
 def _label_clusters(adata: AnnData, markers: dict[str, list]):
+    var_names = {gene.strip().lower() for gene in adata.var_names}
+
     for cell_type, genes in markers.items():
-        if not genes or not any(gene in adata.var_names for gene in genes):
+        if not genes or not any(gene.strip().lower() in var_names for gene in genes):
             continue
         sc.tl.score_genes(adata, gene_list=genes, score_name=f"{cell_type}_score")
 
